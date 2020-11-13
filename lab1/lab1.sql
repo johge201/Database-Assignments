@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS newtable CASCADE;
 DROP VIEW IF EXISTS view1;
 DROP VIEW IF EXISTS otherview1;
 DROP VIEW IF EXISTS altview;
+DROP VIEW IF EXISTS jbsale_supply;
 
 
 /*
@@ -350,10 +351,43 @@ tables, i.e. do not remove foreign keys. Also, remember that you are only
 allowed to use ?Los Angeles? as a constant in your queries, not ?199? or
 ?900?.
 b) Explain what you did and why.*/
+DELETE
+FROM jbsale
+WHERE jbsale.item IN (SELECT jbitem.id FROM jbitem, jbsupplier, jbcity WHERE jbsale.item = jbitem.id 
+AND jbsupplier.id = jbitem.supplier AND jbsupplier.city = jbcity.id AND jbcity.name = 'Los Angeles');
 
-/*DELETE
+DELETE 
+FROM jbitem
+WHERE jbitem.supplier IN (SELECT jbsupplier.id FROM jbsupplier, jbcity WHERE jbsupplier.id = jbitem.supplier 
+AND jbsupplier.city = jbcity.id AND jbcity.name = 'Los Angeles');
+
+DELETE
 FROM jbsupplier  
-WHERE EXISTS (SELECT id, name FROM jbcity WHERE jbsupplier.city = jbcity.id AND jbcity.name = 'Los Angeles');*/
+WHERE city IN (SELECT id FROM jbcity WHERE jbcity.name = 'Los Angeles');
+
+SELECT *
+FROM jbsupplier;
+
+/*'5', 'Amdahl', '921'
+'15', 'White Stag', '106'
+'20', 'Wormley', '118'
+'33', 'Levi-Strauss', '941'
+'42', 'Whitman\'s', '802'
+'62', 'Data General', '303'
+'67', 'Edger', '841'
+'89', 'Fisher-Price', '21'
+'122', 'White Paper', '981'
+'125', 'Playskool', '752'
+'213', 'Cannon', '303'
+'241', 'IBM', '100'
+'440', 'Spooley', '609'
+'475', 'DEC', '10'
+'999', 'A E Neumann', '537'
+
+B) We had to remove Los Angeles from all the tables that had a connection to jbsupplier. Therefore we started removing the related
+rows from jbsale, which had a connection to jbitem. Then we removed the related rows from jbitem which had a connection to jbsupplier. 
+In this way we could safely remove all the connected rows from the various tables. 
+*/
 
 /*20) An employee has tried to find out which suppliers that have delivered items that
 have been sold. He has created a view and a query that shows the number of items
@@ -407,6 +441,5 @@ GROUP BY supplier;
 'White Stag', '4'
 'Whitman\'s', '2'
 'Wormley', NULL
-
-Here we use a left join so that all supplier show upp, even though they don't have a sale.
 */
+
