@@ -237,8 +237,7 @@ the CREATE TABLE syntax where you define every attribute explicitly (i.e. not
 as a copy of another table). Then fill the table with all items that cost less than the
 average price for items. Remember to define primary and foreign keys in your
 table!*/
-create table newtable as select * from jbitem where 0=1;
-
+CREATE TABLE newtable LIKE jbitem;
 INSERT INTO newtable
 SELECT *
 FROM jbitem
@@ -419,27 +418,17 @@ consider suppliers that have delivered items that have never been sold as well.*
 
 CREATE VIEW jbsale_supply(supplier, item, quantity) AS
 SELECT jbsupplier.name, jbitem.name, jbsale.quantity
-FROM jbsupplier LEFT JOIN jbitem ON jbsupplier.id = jbitem.supplier
+FROM jbsupplier INNER JOIN jbitem ON jbsupplier.id = jbitem.supplier
 LEFT JOIN jbsale ON jbsale.item = jbitem.id;
 
 SELECT supplier, sum(quantity) AS sum FROM jbsale_supply
 GROUP BY supplier;
 
-/*'A E Neumann', NULL
-'Amdahl', NULL
-'Cannon', '6'
-'Data General', NULL
-'DEC', NULL
-'Edger', NULL
+/*'Cannon', '6'
 'Fisher-Price', NULL
-'IBM', NULL
-'Koret', '1'
 'Levi-Strauss', '1'
 'Playskool', '2'
-'Spooley', NULL
-'White Paper', NULL
 'White Stag', '4'
 'Whitman\'s', '2'
-'Wormley', NULL
 */
 
