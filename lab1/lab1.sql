@@ -237,8 +237,20 @@ the CREATE TABLE syntax where you define every attribute explicitly (i.e. not
 as a copy of another table). Then fill the table with all items that cost less than the
 average price for items. Remember to define primary and foreign keys in your
 table!*/
-CREATE TABLE newtable LIKE jbitem;
-INSERT INTO newtable
+CREATE TABLE newtable (
+id integer, 
+name VARCHAR(20),
+dept integer,
+price integer,
+qoh integer,
+supplier integer,
+
+constraint PRIMARY KEY (id),
+constraint FOREIGN KEY (dept) REFERENCES jbdept(id), 
+constraint FOREIGN KEY (supplier) REFERENCES jbsupplier(id) 
+);
+
+INSERT INTO newtable (id, name, dept, price, qoh, supplier)
 SELECT *
 FROM jbitem
 WHERE price < (SELECT AVG(price) FROM jbitem);
@@ -246,12 +258,11 @@ WHERE price < (SELECT AVG(price) FROM jbitem);
 SELECT *
 FROM newtable;
 
-/*'11', 'Wash Cloth', '1', '75', '575', '213'
+/*''11', 'Wash Cloth', '1', '75', '575', '213'
 '19', 'Bellbottoms', '43', '450', '600', '33'
 '21', 'ABC Blocks', '1', '198', '405', '125'
 '23', '1 lb Box', '10', '215', '100', '42'
 '25', '2 lb Box, Mix', '10', '450', '75', '42'
-'26', 'Earrings', '14', '1000', '20', '199'
 '43', 'Maze', '49', '325', '200', '89'
 '106', 'Clock Book', '49', '198', '150', '125'
 '107', 'The \'Feel\' Book', '35', '225', '225', '89'
@@ -275,7 +286,6 @@ FROM view1;
 '21', 'ABC Blocks', '1', '198', '405', '125'
 '23', '1 lb Box', '10', '215', '100', '42'
 '25', '2 lb Box, Mix', '10', '450', '75', '42'
-'26', 'Earrings', '14', '1000', '20', '199'
 '43', 'Maze', '49', '325', '200', '89'
 '106', 'Clock Book', '49', '198', '150', '125'
 '107', 'The \'Feel\' Book', '35', '225', '225', '89'
