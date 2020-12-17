@@ -1,4 +1,3 @@
-
 	SET FOREIGN_KEY_CHECKS=0;  
     DROP TABLE IF EXISTS weeklyschedule CASCADE;
 	DROP TABLE IF EXISTS weekday CASCADE;
@@ -362,7 +361,7 @@
     d) We can use locks to make sure that two or more conflicting sessions cannot operate on addpayment at the same time. If we lock the tables that are involved 
     during addpayment and responsible for hopefully no overbooking occuring. 
     If we add the following code to the Question10MakeBooking
-    LOCK TABLES booking AS b WRITE, bookingcontact AS bc READ, ticket AS t WRITE, reservation AS r READ, reservation AS r WRITE, flight AS f READ, weekday AS w READ, year AS y READ, payment As p WRITE, weeklyschedule AS ws READ;
+    LOCK TABLES booking AS b WRITE, bookingcontact AS bc READ, ticket AS t WRITE, reservation AS r READ, reservation AS re WRITE, flight AS f READ, weekday AS w READ, year AS y READ, payment As p WRITE, weeklyschedule AS ws READ;
     CALL addPayment (@a, "Sauron",7878787878);
     UNLOCK TABLES;
     
