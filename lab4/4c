@@ -317,3 +317,15 @@
     WHERE arr.airportcode = r.arrivalcode AND dep.airportcode = r.departurecode AND r.routeID = ws.routeID AND r.year = ws.year AND ws.weekday = w.weekday
     AND ws.flightID = f.flightID;
     
+
+    8. Answer the following theoretical questions:
+a) How can you protect the credit card information in the database from hackers?
+
+Since credit card information is sensitive information it is possible to use encryption to protect this data. As long as the encryption keys are not saved together in the database a hacker would not be able to decrypt the sensitive information. Encryption can be used for stored procedures, data and connections.
+
+b) Give three advantages of using stored procedures in the database (and thereby
+execute them on the server) instead of writing the same functions in the frontend of the system (in for example java-script on a web-page)?
+
+The first advantage is that using stored procedures reduces duplication of effort. Since stored procedures are only compiled once the procedure calls will be quicker, especially if the database is needed by many applications simultaneously. By only compiling once, network traffic can be minimized.
+The second advantage is that stored procedures reduce the cost of communication as well as reducing the amount of data needing to be transferred. This means that the data can be executed much faster.
+The third advantage is that using stored procedures gives the possibility of using complex constraints, meaning that it is possible to determine limitations of what data is stored in a table. If a constraint is violated by a user call the call or “action” will be discarded
