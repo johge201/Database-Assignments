@@ -1,0 +1,319 @@
+	SET FOREIGN_KEY_CHECKS=0;  
+    DROP TABLE IF EXISTS weeklyschedule CASCADE;
+	DROP TABLE IF EXISTS weekday CASCADE;
+	DROP TABLE IF EXISTS year CASCADE;
+	DROP TABLE IF EXISTS flight CASCADE;
+	DROP TABLE IF EXISTS route CASCADE;
+	DROP TABLE IF EXISTS airport CASCADE;
+	DROP TABLE IF EXISTS reservation CASCADE;
+	DROP TABLE IF EXISTS bookingcontact CASCADE;
+	DROP TABLE IF EXISTS passenger CASCADE;
+	DROP TABLE IF EXISTS booking CASCADE;
+	DROP TABLE IF EXISTS payment CASCADE;
+	DROP TABLE IF EXISTS ticket CASCADE;
+    SET FOREIGN_KEY_CHECKS=1; 
+    
+	DROP PROCEDURE IF EXISTS addYear;
+    DROP PROCEDURE IF EXISTS addDay;
+    DROP PROCEDURE IF EXISTS addDestination;
+	DROP PROCEDURE IF EXISTS addRoute;
+    DROP PROCEDURE IF EXISTS addFlight;
+    DROP PROCEDURE IF EXISTS addReservation;
+    DROP PROCEDURE IF EXISTS addPassenger;
+	DROP PROCEDURE IF EXISTS addContact;
+    DROP PROCEDURE IF EXISTS addPayment;
+
+	DROP FUNCTION IF EXISTS calculateFreeSeats;
+    DROP FUNCTION IF EXISTS calculatePrice;
+    
+	DROP TRIGGER IF EXISTS ticketNum;
+    
+    DROP VIEW IF EXISTS allFlights;
+    
+    CREATE TABLE weeklyschedule (
+    flightID INT AUTO_INCREMENT,
+    weekday VARCHAR(10),
+    timeofdeparture TIME,
+    routeID INT,
+    year INT,
+    CONSTRAINT pk_weeklyschedule PRIMARY KEY(flightID))ENGINE=InnoDB;
+  
+    CREATE TABLE weekday (
+    weekdayfactor DOUBLE,
+    weekday VARCHAR(10),
+    year INT,
+    CONSTRAINT pk_weekday PRIMARY KEY(year, weekday)) ENGINE=InnoDB;
+    
+    CREATE TABLE year (
+    year INT,
+    profitfactor DOUBLE,
+    CONSTRAINT pk_year PRIMARY KEY(year)) ENGINE=InnoDB;
+    
+    CREATE TABLE flight(
+    flightnumber INT AUTO_INCREMENT,
+    week INT,
+    passengeramount INT,
+    flightID INT,
+    CONSTRAINT pk_flight PRIMARY KEY(flightNumber)) ENGINE=InnoDB;
+
+	CREATE TABLE route (
+    routeID INT AUTO_INCREMENT,
+    year INT,
+    routeprice DOUBLE,
+    arrivalcode VARCHAR(3),
+    departurecode VARCHAR(3),
+    CONSTRAINT pk_route PRIMARY KEY(routeID)) ENGINE=InnoDB;
+     
+    CREATE TABLE airport (
+    airportcode VARCHAR(3),
+    country VARCHAR(30),
+    airportname VARCHAR(30),
+    CONSTRAINT pk_airport PRIMARY KEY(airportcode)) ENGINE=InnoDB;
+    
+    CREATE TABLE reservation (
+    reservationnumber INT NOT NULL AUTO_INCREMENT,
+    confirmedpassenger INT,
+    passportnumber INT,
+    flightnumber INT,
+    CONSTRAINT pk_reservation PRIMARY KEY(reservationnumber)) ENGINE=InnoDB;
+    
+    CREATE TABLE bookingcontact (
+    passportnumber INT,
+    email VARCHAR(30),
+    phonenum BIGINT,
+    CONSTRAINT pk_bookingcontact PRIMARY KEY(passportnumber)) ENGINE=InnoDB;
+    
+    CREATE TABLE passenger (
+    passportnumber INT,
+    fullname VARCHAR(30),
+    CONSTRAINT pk_passenger PRIMARY KEY(passportnumber)) ENGINE=InnoDB;
+    
+    CREATE TABLE booking (
+    reservationnumber INT,
+    totalprice DOUBLE,
+    cardnum BIGINT,
+    CONSTRAINT pk_booking PRIMARY KEY(reservationnumber)) ENGINE=InnoDB;
+    
+    CREATE TABLE payment (
+    cardnum BIGINT,
+    cardholder VARCHAR(30),
+    reservationnumber INT,
+    CONSTRAINT pk_payment PRIMARY KEY(cardnum)) ENGINE=InnoDB;
+    
+    CREATE TABLE ticket (
+    ticketnumber INT,
+    reservationnumber INT,
+    passportnumber INT,
+    CONSTRAINT pk_ticket PRIMARY KEY(passportnumber, reservationnumber)) ENGINE=InnoDB;
+    
+
+    ALTER TABLE weeklyschedule ADD CONSTRAINT fk_weekly FOREIGN KEY (year, weekday) REFERENCES weekday(year, weekday);
+    ALTER TABLE weeklyschedule ADD CONSTRAINT fk_route FOREIGN KEY (routeID) REFERENCES route(routeID);
+    
+	ALTER TABLE weekday ADD CONSTRAINT fk_weekday_year FOREIGN KEY (year) REFERENCES year(year);
+    
+    ALTER TABLE flight ADD CONSTRAINT fk_flight_id FOREIGN KEY (flightID) REFERENCES weeklyschedule(flightID);
+    
+    ALTER TABLE route ADD CONSTRAINT fk_route_arr FOREIGN KEY (arrivalcode) REFERENCES airport(airportcode);
+    ALTER TABLE route ADD CONSTRAINT fk_route_dept FOREIGN KEY (departurecode) REFERENCES airport(airportcode);
+
+    ALTER TABLE reservation ADD CONSTRAINT fk_reservation_passportnum FOREIGN KEY (passportnumber) REFERENCES bookingcontact(passportnumber);
+    ALTER TABLE reservation ADD CONSTRAINT fk_reservation_flightnum FOREIGN KEY (flightnumber) REFERENCES flight(flightnumber);
+    
+    ALTER TABLE bookingcontact ADD CONSTRAINT fk_bookingcontact_passnum FOREIGN KEY (passportnumber) REFERENCES passenger(passportnumber);
+    
+    ALTER TABLE booking ADD CONSTRAINT fk_booking_resnum FOREIGN KEY (reservationnumber) REFERENCES reservation(reservationnumber);
+    ALTER TABLE booking ADD CONSTRAINT fk_booking_cardnum FOREIGN KEY (cardnum) REFERENCES payment(cardnum);
+    
+    ALTER TABLE ticket ADD CONSTRAINT fk_ticket_resnum FOREIGN KEY (reservationnumber) REFERENCES reservation(reservationnumber);
+    ALTER TABLE ticket ADD CONSTRAINT fk_ticket_passnum FOREIGN KEY (passportnumber) REFERENCES passenger(passportnumber);
+    
+    /*PROCEDURES*/
+    
+    /*3a addYear*/ 
+    DELIMITER //
+    CREATE PROCEDURE addYear(IN add_year INT, IN add_profitfactor DOUBLE) 
+    BEGIN
+    INSERT INTO year (year, profitfactor)
+    VALUES (add_year, add_profitfactor);
+    END ;//
+    
+    /*3b addDay*/
+    CREATE PROCEDURE addDay(IN add_year INT, IN add_weekday VARCHAR(10), IN add_weekdayfactor DOUBLE) 
+    BEGIN
+    INSERT INTO weekday (year, weekday, weekdayfactor)
+    VALUES (add_year, add_weekday, add_weekdayfactor);
+    END ;//
+		
+	/*3c addDestination*/
+    CREATE PROCEDURE addDestination(IN add_airportcode VARCHAR(3), IN add_airportname VARCHAR(30), IN add_country VARCHAR(30)) 
+    BEGIN
+    INSERT INTO airport (airportcode, airportname, country)
+    VALUES (add_airportcode, add_airportname, add_country);
+    END ;//
+    
+	/*3d addRoute: borde vi inte också lägga till routeid till routen??*/
+    CREATE PROCEDURE addRoute(IN add_departurecode VARCHAR(3), IN add_arrivalcode VARCHAR(3), IN add_year INT, IN add_routeprice DOUBLE) 
+    BEGIN
+    INSERT INTO route (departurecode, arrivalcode, year, routeprice)
+    VALUES (add_departurecode, add_arrivalcode, add_year, add_routeprice);
+    END ;//
+    
+   /*3e addFlight:*/
+    CREATE PROCEDURE addFlight(IN add_departurecode VARCHAR(3), IN add_arrivalcode VARCHAR(3), IN add_year INT, IN add_weekday VARCHAR(10), IN add_timeofdeparture TIME) 
+    BEGIN
+    DECLARE add_route INT;
+    DECLARE id INT;
+    DECLARE weekly INT DEFAULT 1;
+    SELECT routeID INTO add_route FROM route WHERE add_departurecode = departurecode AND add_arrivalcode = arrivalcode AND add_year = year; 
+    INSERT INTO weeklyschedule (year, weekday, timeofdeparture, routeID)
+    VALUES (add_year, add_weekday, add_timeofdeparture, add_route);
+    SET id = last_insert_id();
+		WHILE(weekly  < 53) DO
+			INSERT INTO flight(week, flightID)
+            VALUES (weekly, id);
+            SET weekly = weekly + 1;
+		END WHILE;
+    END;//
+
+    /*Functions*/
+    /*4a calculateFreeSeats*/ 
+    CREATE FUNCTION calculateFreeSeats (calc_flightNumber INT)
+    RETURNS INT
+    BEGIN 
+    DECLARE bookedSeats INT;
+	SELECT COUNT(*) INTO bookedSeats FROM ticket AS t, reservation AS r 
+    WHERE calc_flightNumber = r.flightnumber AND r.reservationnumber = t.reservationnumber 
+    AND (t.ticketnumber IS NOT NULL);
+	RETURN 40 - bookedSeats;
+    END;//
+    
+    /*4b calculatePrice*/ 
+	CREATE FUNCTION calculatePrice (calc_flightNumber INT)
+    RETURNS DOUBLE
+    BEGIN 
+    DECLARE bookedSeats INT;
+    DECLARE profitFact DOUBLE;
+    DECLARE weekdayFact DOUBLE;
+    DECLARE routeP DOUBLE;
+	SELECT COUNT(*) INTO bookedSeats FROM flight AS f, reservation AS r, ticket AS t WHERE f.flightnumber = calc_flightNumber AND f.flightnumber = r.flightnumber
+    AND r.reservationnumber = t.reservationnumber AND ticketnumber IS NOT NULL;
+    SELECT profitfactor INTO profitFact FROM year AS y, weeklyschedule AS ws, flight as f WHERE calc_flightNumber=f.flightnumber AND f.flightID = ws.flightID 
+    AND ws.year=y.year;
+    SELECT weekdayfactor INTO weekdayFact FROM weekday AS w, weeklyschedule AS ws, flight as f WHERE calc_flightNumber=f.flightnumber AND f.flightID = ws.flightID 
+    AND ws.weekday=w.weekday;
+	SELECT routeprice INTO routeP FROM route AS r, weeklyschedule AS ws, flight as f WHERE calc_flightNumber=f.flightnumber AND f.flightID = ws.flightID 
+    AND ws.routeID=r.routeID;
+    RETURN ROUND(routeP*weekdayFact*((bookedSeats +1)/40)*profitFact, 3);
+    END;//
+
+	/*TRIGGER*/
+    /*5 ticketNum*/ 
+	CREATE TRIGGER ticketNum
+    AFTER INSERT 
+	ON booking 
+    FOR EACH ROW
+    BEGIN
+		UPDATE ticket
+		SET ticketnumber = FLOOR(1 + rand()*100000000)
+		WHERE ticket.reservationnumber = NEW.reservationnumber AND ticketnumber IS NULL;
+    END;//
+    
+    /*PROCEDURES*/
+    /*6a addReservation*/
+    CREATE PROCEDURE addReservation(IN departure_airport_code VARCHAR(3), IN arrival_airport_code VARCHAR(3), IN in_year INT, IN in_week INT, IN day VARCHAR(10),
+    IN time TIME, IN number_of_passengers INT,OUT output_reservation_nr INT)
+    BEGIN
+    DECLARE flightnum INT;
+    DECLARE reservation_number INT;
+	SELECT flightnumber INTO flightnum FROM flight WHERE in_week = week AND flightID IN (
+	SELECT flightID FROM weeklyschedule WHERE  weekday = day AND timeofdeparture = time AND in_year = year  AND routeID IN (
+	SELECT routeID FROM route WHERE year = in_year AND arrivalcode = arrival_airport_code AND departurecode = departure_airport_code ));
+		IF flightnum IS NULL THEN
+				SELECT 'There exist no flight for the given route, date and time' as 'Message';
+		ELSEIF  calculateFreeSeats(flightnum) < number_of_passengers THEN 
+				SELECT 'There are not enough seats available on the chosen flight' as 'Message';
+		ELSE
+				INSERT INTO reservation (confirmedpassenger, flightnumber)
+				VALUES (number_of_passengers, flightnum);
+				SET output_reservation_nr = last_insert_id();
+		END IF;
+    END;//
+    
+    /*6b addPassenger*/
+    CREATE PROCEDURE addPassenger( IN reservation_nr INT, IN passport INT, IN name VARCHAR(30))
+    BEGIN
+    DECLARE resnum INT;
+    DECLARE book INT;
+    SELECT reservationnumber INTO resnum FROM reservation WHERE reservationnumber = reservation_nr;
+    SELECT COUNT(*) INTO book FROM booking as b, reservation as r WHERE b.reservationnumber = reservation_nr;
+		IF resnum IS NULL THEN
+            SELECT 'The given reservation number does not exist' AS 'Message';
+		ELSEIF book > 0 THEN
+			SELECT 'The booking has already been payed and no futher passengers can be added' AS 'Message';
+        ELSE
+			INSERT IGNORE INTO passenger(passportnumber, fullname)
+			VALUES (passport, name);
+            INSERT INTO ticket(reservationnumber, passportnumber)
+            VALUES (reservation_nr,passport);
+		END IF;
+    END;//
+    
+    /*6c addContact*/
+    CREATE PROCEDURE addContact( IN reservation_nr INT, IN passport_number INT, IN email VARCHAR(30), IN phone BIGINT)
+    BEGIN
+    DECLARE resnum INT;
+    DECLARE passnum INT;
+    SELECT reservationnumber INTO resnum FROM reservation WHERE reservationnumber = reservation_nr;
+    SELECT COUNT(*) INTO passnum FROM ticket WHERE reservationnumber = reservation_nr AND passportnumber = passport_number;
+			IF resnum IS NULL THEN
+				SELECT 'The given reservation number does not exist' AS 'Message';
+			ELSEIF passnum < 1 THEN
+				SELECT 'The person is not a passenger of the reservation' AS 'Message';
+            ELSE
+				INSERT INTO bookingcontact(passportnumber, email, phonenum)
+				VALUES (passport_number, email, phone);
+                UPDATE reservation
+                SET passportnumber = passport_number
+                WHERE reservationnumber = reservation_nr;
+			END IF;
+    END;//
+    
+    /*6d addPayment*/
+    CREATE PROCEDURE addPayment(IN reservation_nr INT, IN cardholder_name VARCHAR(30), IN credit_card_number BIGINT)
+    BEGIN
+	DECLARE resnum INT;
+    DECLARE contact INT;
+    DECLARE confpassengers INT;
+    DECLARE flightnum INT;
+    DECLARE totprice INT;
+    SELECT reservationnumber INTO resnum FROM reservation WHERE reservationnumber = reservation_nr;
+    SELECT COUNT(*) INTO confpassengers FROM ticket WHERE reservationnumber = reservation_nr;
+    SELECT f.flightnumber INTO flightnum FROM reservation AS r, flight AS f WHERE reservationnumber = reservation_nr AND r.flightnumber = f.flightnumber;
+    SELECT COUNT(*) INTO contact FROM reservation AS r, bookingcontact AS bc WHERE r.reservationnumber = reservation_nr AND r.passportnumber IS NOT NULL;
+		IF resnum IS NULL THEN
+			SELECT 'The given reservation number does not exist' AS 'Message';
+		ELSEIF contact < 1 THEN
+			SELECT 'The reservation has no contact yet' AS 'Message';
+		ELSEIF calculateFreeSeats(flightnum) < confpassengers THEN
+			 SELECT 'There are not enough unpaid seats available on the chosen flight' AS 'Message';
+             DELETE FROM ticket WHERE reservationnumber = reservation_nr;
+             DELETE FROM reservation WHERE reservationnumber = reservation_nr;
+		ELSE 
+			INSERT INTO payment(cardnum,cardholder)
+			VALUES (credit_card_number, cardholder_name);
+			SET totprice = calculatePrice(flightnum); 
+			INSERT INTO booking(reservationnumber, totalprice, cardnum)
+			VALUES (resnum, totprice, credit_card_number);
+        END IF;
+    END;//
+	DELIMITER ;
+
+	/*6d allFlights*/
+    CREATE VIEW allFlights AS
+    SELECT dep.airportname AS departure_city_name, arr.airportname AS destination_city_name, ws.timeofdeparture AS departure_time, w.weekday AS departure_day,
+    f.week AS departure_week, ws.year AS departure_year, calculateFreeSeats(f.flightnumber) AS nr_of_free_seats,calculatePrice(f.flightnumber) AS current_price_per_seat
+    FROM route AS r, airport as arr, airport as dep, weeklyschedule AS ws, weekday AS w, flight as f
+    WHERE arr.airportcode = r.arrivalcode AND dep.airportcode = r.departurecode AND r.routeID = ws.routeID AND r.year = ws.year AND ws.weekday = w.weekday
+    AND ws.flightID = f.flightID;
+    
