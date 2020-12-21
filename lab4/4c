@@ -357,16 +357,14 @@ UNLOCK TABLES;
     b) Theoretically it could occur if both sessions run the procedure addpayment at the same time. In this case both sessions would run the calculateFreeSeats simultaneously
     and therefore they wouldn't see that the seats are occupied, since none of the bookings have been payed yet. Therefore an overbooking can occur...
     
-    c) We tried to make the theoretical case occur by adding SELECT SLEEP(5); into the addpayment procedure, right before a booking was inserted, but we did not succeed.
-    It appears as if MySQL won't let another session run before Session A is finished and thereby has commited. 
+    c) We tried to make the theoretical case occur by adding SELECT SLEEP(5); into the addpayment procedure..
     
     d) We can use locks to make sure that two or more conflicting sessions cannot operate on addpayment at the same time. If we lock the tables that are involved 
     during addpayment and responsible for hopefully no overbooking occuring. 
     If we add the following code to the Question10MakeBooking
-    LOCK TABLES booking AS b WRITE, bookingcontact AS bc READ, ticket AS t WRITE, reservation AS r READ, reservation AS r WRITE, flight AS f READ, weekday AS w READ, year AS y READ, payment As p WRITE, weeklyschedule AS ws READ;
-    CALL addPayment (@a, "Sauron",7878787878);
-    UNLOCK TABLES;
-    
+	LOCK TABLES booking WRITE, reservation WRITE, payment WRITE, bookingcontact AS bc READ, reservation AS r READ, ticket AS t READ, flight AS f READ, route AS route READ, weekday AS w READ, year AS y READ, weeklyschedule AS ws READ, weeklyschedule READ;
+	CALL addPayment (@a, "Sauron",7878787878);
+	UNLOCK TABLES;
     then no overbooking should be able to occur. All the tables involved with addpayment should be locked until session A is done, and therefore session B cannot 
     perform addpayment at the same time, and calculatefreeseats should give the correct result. So no overbooking should occur. 
     */
