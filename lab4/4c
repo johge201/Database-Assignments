@@ -1,3 +1,4 @@
+UNLOCK TABLES;
 	SET FOREIGN_KEY_CHECKS=0;  
     DROP TABLE IF EXISTS weeklyschedule CASCADE;
 	DROP TABLE IF EXISTS weekday CASCADE;
@@ -152,7 +153,7 @@
     VALUES (add_airportcode, add_airportname, add_country);
     END ;//
     
-	/*3d addRoute: borde vi inte också lägga till routeid till routen??*/
+	/*3d addRoute: borde vi inte ocksÃ¥ lÃ¤gga till routeid till routen??*/
     CREATE PROCEDURE addRoute(IN add_departurecode VARCHAR(3), IN add_arrivalcode VARCHAR(3), IN add_year INT, IN add_routeprice DOUBLE) 
     BEGIN
     INSERT INTO route (departurecode, arrivalcode, year, routeprice)
@@ -202,8 +203,8 @@
     AND ws.year=y.year;
     SELECT weekdayfactor INTO weekdayFact FROM weekday AS w, weeklyschedule AS ws, flight as f WHERE calc_flightNumber=f.flightnumber AND f.flightID = ws.flightID 
     AND ws.weekday=w.weekday;
-	SELECT routeprice INTO routeP FROM route AS r, weeklyschedule AS ws, flight as f WHERE calc_flightNumber=f.flightnumber AND f.flightID = ws.flightID 
-    AND ws.routeID=r.routeID;
+	SELECT routeprice INTO routeP FROM route AS route, weeklyschedule AS ws, flight as f WHERE calc_flightNumber=f.flightnumber AND f.flightID = ws.flightID 
+    AND ws.routeID=route.routeID;
     RETURN ROUND(routeP*weekdayFact*((bookedSeats +1)/40)*profitFact, 3);
     END;//
 
@@ -272,7 +273,8 @@
 				SELECT 'The person is not a passenger of the reservation' AS 'Message';
             ELSE
 				INSERT INTO bookingcontact(passportnumber, email, phonenum)
-				VALUES (passport_number, email, phone);
+				VALUES (passport_number, email, phone) 
+                ON DUPLICATE KEY UPDATE email = email, phonenum = phone;
                 UPDATE reservation
                 SET passportnumber = passport_number
                 WHERE reservationnumber = reservation_nr;
@@ -302,8 +304,8 @@
 		ELSE 
 			INSERT INTO payment(cardnum,cardholder)
 			VALUES (credit_card_number, cardholder_name);
-			SET totprice = calculatePrice(flightnum); 
-			SELECT SLEEP(5);
+			SET totprice = calculatePrice(flightnum);
+            SELECT SLEEP(5);
             INSERT INTO booking(reservationnumber, totalprice, cardnum)
 			VALUES (resnum, totprice, credit_card_number);
         END IF;
@@ -314,8 +316,8 @@
     CREATE VIEW allFlights AS
     SELECT dep.airportname AS departure_city_name, arr.airportname AS destination_city_name, ws.timeofdeparture AS departure_time, w.weekday AS departure_day,
     f.week AS departure_week, ws.year AS departure_year, calculateFreeSeats(f.flightnumber) AS nr_of_free_seats,calculatePrice(f.flightnumber) AS current_price_per_seat
-    FROM route AS r, airport as arr, airport as dep, weeklyschedule AS ws, weekday AS w, flight as f
-    WHERE arr.airportcode = r.arrivalcode AND dep.airportcode = r.departurecode AND r.routeID = ws.routeID AND r.year = ws.year AND ws.weekday = w.weekday
+    FROM route AS route, airport as arr, airport as dep, weeklyschedule AS ws, weekday AS w, flight as f
+    WHERE arr.airportcode = route.arrivalcode AND dep.airportcode = route.departurecode AND route.routeID = ws.routeID AND route.year = ws.year AND ws.weekday = w.weekday
     AND ws.flightID = f.flightID;
     
     /*8 Answer the following theoretical questions:
@@ -326,7 +328,7 @@
 	execute them on the server) instead of writing the same functions in the frontend of the system (in for example java-script on a web-page)?
 	The first advantage is that using stored procedures reduces duplication of effort. Since stored procedures are only compiled once the procedure calls will be quicker, especially if the database is needed by many applications simultaneously. By only compiling once, network traffic can be minimized.
 	The second advantage is that stored procedures reduce the cost of communication as well as reducing the amount of data needing to be transferred. This means that the data can be executed much faster.
-	The third advantage is that using stored procedures gives the possibility of using complex constraints, meaning that it is possible to determine limitations of what data is stored in a table. If a constraint is violated by a user call the call or “action” will be discarded
+	The third advantage is that using stored procedures gives the possibility of using complex constraints, meaning that it is possible to determine limitations of what data is stored in a table. If a constraint is violated by a user call the call or âactionâ will be discarded
 	*/
     
     /* 9
@@ -361,7 +363,7 @@
     d) We can use locks to make sure that two or more conflicting sessions cannot operate on addpayment at the same time. If we lock the tables that are involved 
     during addpayment and responsible for hopefully no overbooking occuring. 
     If we add the following code to the Question10MakeBooking
-    LOCK TABLES booking AS b WRITE, bookingcontact AS bc READ, ticket AS t WRITE, reservation AS r READ, reservation AS re WRITE, flight AS f READ, weekday AS w READ, year AS y READ, payment As p WRITE, weeklyschedule AS ws READ;
+    LOCK TABLES booking AS b WRITE, bookingcontact AS bc READ, ticket AS t WRITE, reservation AS r READ, reservation AS r WRITE, flight AS f READ, weekday AS w READ, year AS y READ, payment As p WRITE, weeklyschedule AS ws READ;
     CALL addPayment (@a, "Sauron",7878787878);
     UNLOCK TABLES;
     
