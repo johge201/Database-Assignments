@@ -1,5 +1,5 @@
-UNLOCK TABLES;
-	SET FOREIGN_KEY_CHECKS=0;  
+	UNLOCK TABLES;
+    SET FOREIGN_KEY_CHECKS=0;  
     DROP TABLE IF EXISTS weeklyschedule CASCADE;
 	DROP TABLE IF EXISTS weekday CASCADE;
 	DROP TABLE IF EXISTS year CASCADE;
@@ -203,8 +203,8 @@ UNLOCK TABLES;
     AND ws.year=y.year;
     SELECT weekdayfactor INTO weekdayFact FROM weekday AS w, weeklyschedule AS ws, flight as f WHERE calc_flightNumber=f.flightnumber AND f.flightID = ws.flightID 
     AND ws.weekday=w.weekday;
-	SELECT routeprice INTO routeP FROM route AS route, weeklyschedule AS ws, flight as f WHERE calc_flightNumber=f.flightnumber AND f.flightID = ws.flightID 
-    AND ws.routeID=route.routeID;
+	SELECT routeprice INTO routeP FROM route AS r, weeklyschedule AS ws, flight as f WHERE calc_flightNumber=f.flightnumber AND f.flightID = ws.flightID 
+    AND ws.routeID=r.routeID;
     RETURN ROUND(routeP*weekdayFact*((bookedSeats +1)/40)*profitFact, 3);
     END;//
 
@@ -273,8 +273,8 @@ UNLOCK TABLES;
 				SELECT 'The person is not a passenger of the reservation' AS 'Message';
             ELSE
 				INSERT INTO bookingcontact(passportnumber, email, phonenum)
-				VALUES (passport_number, email, phone) 
-                ON DUPLICATE KEY UPDATE email = email, phonenum = phone;
+				VALUES (passport_number, email, phone)
+				ON DUPLICATE KEY UPDATE email = email, phonenum = phone;
                 UPDATE reservation
                 SET passportnumber = passport_number
                 WHERE reservationnumber = reservation_nr;
@@ -302,11 +302,12 @@ UNLOCK TABLES;
              DELETE FROM ticket WHERE reservationnumber = reservation_nr;
              DELETE FROM reservation WHERE reservationnumber = reservation_nr;
 		ELSE 
+			SELECT SLEEP(5);
 			INSERT INTO payment(cardnum,cardholder)
-			VALUES (credit_card_number, cardholder_name);
+			VALUES (credit_card_number, cardholder_name)
+			ON DUPLICATE KEY UPDATE cardnum = credit_card_number, cardholder = cardholder_name;
 			SET totprice = calculatePrice(flightnum);
-            SELECT SLEEP(5);
-            INSERT INTO booking(reservationnumber, totalprice, cardnum)
+			INSERT INTO booking(reservationnumber, totalprice, cardnum)
 			VALUES (resnum, totprice, credit_card_number);
         END IF;
     END;//
@@ -316,8 +317,8 @@ UNLOCK TABLES;
     CREATE VIEW allFlights AS
     SELECT dep.airportname AS departure_city_name, arr.airportname AS destination_city_name, ws.timeofdeparture AS departure_time, w.weekday AS departure_day,
     f.week AS departure_week, ws.year AS departure_year, calculateFreeSeats(f.flightnumber) AS nr_of_free_seats,calculatePrice(f.flightnumber) AS current_price_per_seat
-    FROM route AS route, airport as arr, airport as dep, weeklyschedule AS ws, weekday AS w, flight as f
-    WHERE arr.airportcode = route.arrivalcode AND dep.airportcode = route.departurecode AND route.routeID = ws.routeID AND route.year = ws.year AND ws.weekday = w.weekday
+    FROM route AS r, airport as arr, airport as dep, weeklyschedule AS ws, weekday AS w, flight as f
+    WHERE arr.airportcode = r.arrivalcode AND dep.airportcode = r.departurecode AND r.routeID = ws.routeID AND r.year = ws.year AND ws.weekday = w.weekday
     AND ws.flightID = f.flightID;
     
     /*8 Answer the following theoretical questions:
@@ -330,46 +331,5 @@ UNLOCK TABLES;
 	The second advantage is that stored procedures reduce the cost of communication as well as reducing the amount of data needing to be transferred. This means that the data can be executed much faster.
 	The third advantage is that using stored procedures gives the possibility of using complex constraints, meaning that it is possible to determine limitations of what data is stored in a table. If a constraint is violated by a user call the call or âactionâ will be discarded
 	*/
-    
-    /* 9
-    a) added new reservation to session A
-    START TRANSACTION;
-    CALL addReservation("MIT","HOB", 2010,1, "Monday", "09:00:00",1,@a);
-    
-    b) This reservation was not visible in session B:
-    START TRANSACTION;
-        SELECT * FROM reservation;
-  
-    However after commiting in session A the result was added into session B as well.
-    
-    c) Since the transaction in session A has not yet been commited session B can't update the 
-    reservation. 
-    UPDATE reservation SET flightnumber = 2;
-    This is because session A has the transaction still running, which entails there could be locks. 
-    The transaction is therefore isolated from other sessions. 
-    */
-    
-    
-    /*10
-    a) No there was no overbooking. Most likely due to the first session having already finished the payment before the other session B could pay. 
-    This means that B checked if there were enough free seats before paying so no overbooking occured.
-    
-    b) Theoretically it could occur if both sessions run the procedure addpayment at the same time. In this case both sessions would run the calculateFreeSeats simultaneously
-    and therefore they wouldn't see that the seats are occupied, since none of the bookings have been payed yet. Therefore an overbooking can occur...
-    
-    c) We tried to make the theoretical case occur by adding SELECT SLEEP(5); into the addpayment procedure..
-    
-    d) We can use locks to make sure that two or more conflicting sessions cannot operate on addpayment at the same time. If we lock the tables that are involved 
-    during addpayment and responsible for hopefully no overbooking occuring. 
-    If we add the following code to the Question10MakeBooking
-	LOCK TABLES booking WRITE, reservation WRITE, payment WRITE, bookingcontact AS bc READ, reservation AS r READ, ticket AS t READ, flight AS f READ, route AS route READ, weekday AS w READ, year AS y READ, weeklyschedule AS ws READ, weeklyschedule READ;
-	CALL addPayment (@a, "Sauron",7878787878);
-	UNLOCK TABLES;
-    then no overbooking should be able to occur. All the tables involved with addpayment should be locked until session A is done, and therefore session B cannot 
-    perform addpayment at the same time, and calculatefreeseats should give the correct result. So no overbooking should occur. 
-    */
-    
 
- 
-	
 		
