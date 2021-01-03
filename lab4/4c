@@ -332,4 +332,45 @@
 	The third advantage is that using stored procedures gives the possibility of using complex constraints, meaning that it is possible to determine limitations of what data is stored in a table. If a constraint is violated by a user call the call or âactionâ will be discarded
 	*/
 
+    /* 9
+    a) added new reservation to session A
+    START TRANSACTION;
+    CALL addReservation("MIT","HOB", 2010,1, "Monday", "09:00:00",1,@a);
+    
+    b) This reservation was not visible in session B:
+    START TRANSACTION;
+        SELECT * FROM reservation;
+  
+    However after commiting in session A the result was added into session B as well.
+    
+    c) Since the transaction in session A has not yet been commited session B can't update the 
+    reservation. 
+
+    UPDATE reservation SET flightnumber = 2;
+
+    This is because session A has the transaction still running, which entails there could be locks. 
+    The transaction is therefore isolated from other sessions. 
+    */
+    
+    
+    /*10
+    a) No there was no overbooking. Most likely due to the first session having already finished the payment before the other session B could pay. 
+    This means that B checked if there were enough free seats before paying so no overbooking occured.
+    
+    b) Theoretically it could occur if both sessions run the procedure addpayment at the same time. In this case both sessions would run the calculateFreeSeats simultaneously
+    and therefore they wouldn't see that the seats are occupied, since none of the bookings have been payed yet. Therefore an overbooking can occur...
+    
+    c) We tried to make the theoretical case occur by adding SELECT SLEEP(5); into the addpayment procedure. After also adding a "INSERT ... ON DUPLICATE KEY UPDATE" in addpayment as well as in addcontact we managed to successfully get an overbooking. 
+    
+    d) We can use locks to make sure that two or more conflicting sessions cannot oparate on addpayment at the same time. If we lock the tables that are involved and responsible 
+    during addpayment hopefully no overbooking will be able to occur, since one session cannot start until the other is finished. This way when running addpayment, the second session will be able to see that a payment cannot be done since an overbooking will occur.  
+    If we add the following code to the Question10MakeBooking
+	LOCK TABLES booking WRITE, reservation WRITE, payment WRITE, bookingcontact AS bc READ, reservation AS r READ, ticket AS t READ, flight AS f READ, route AS route READ, weekday AS w READ, year AS y READ, weeklyschedule AS ws READ, weeklyschedule READ;
+	CALL addPayment (@a, "Sauron",7878787878);
+	UNLOCK TABLES;
+    then no overbooking should be able to occur. All the tables involved with addpayment should be locked until session A is done, and therefore session B cannot 
+    perform addpayment at the same time, and calculatefreeseats should give the correct result. So no overbooking should occur. 
+    */
+
+
 		
