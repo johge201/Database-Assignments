@@ -374,9 +374,11 @@
     d) We can use locks to make sure that two or more conflicting sessions cannot oparate on addpayment at the same time. If we lock the tables that are involved and responsible 
     during addpayment hopefully no overbooking will be able to occur, since one session cannot start until the other is finished. This way when running addpayment, the second session will be able to see that a payment cannot be done since an overbooking will occur.  
     If we add the following code to the Question10MakeBooking
-	LOCK TABLES booking WRITE, reservation WRITE, payment WRITE, bookingcontact AS bc READ, reservation AS r READ, ticket AS t READ, flight AS f READ, route AS route READ, weekday AS w READ, year AS y READ, weeklyschedule AS ws READ, weeklyschedule READ;
+	START TRANSACTION;
+    LOCK TABLES booking WRITE, reservation WRITE, payment WRITE, bookingcontact AS bc READ, reservation AS r READ, ticket AS t READ, flight AS f READ, route AS route READ, weekday AS w READ, year AS y READ, weeklyschedule AS ws READ, weeklyschedule READ;
 	CALL addPayment (@a, "Sauron",7878787878);
 	UNLOCK TABLES;
+    COMMIT;
     then no overbooking should be able to occur. All the tables involved with addpayment should be locked until session A is done, and therefore session B cannot 
     perform addpayment at the same time, and calculatefreeseats should give the correct result. So no overbooking should occur. 
     */
