@@ -37,6 +37,7 @@
     timeofdeparture TIME,
     routeID INT,
     year INT,
+    UNIQUE (routeID, weekday, year, timeofdeparture),
     CONSTRAINT pk_weeklyschedule PRIMARY KEY(flightID))ENGINE=InnoDB;
   
     CREATE TABLE weekday (
@@ -53,7 +54,6 @@
     CREATE TABLE flight(
     flightnumber INT AUTO_INCREMENT,
     week INT,
-    passengeramount INT,
     flightID INT,
     CONSTRAINT pk_flight PRIMARY KEY(flightNumber)) ENGINE=InnoDB;
 
@@ -63,6 +63,7 @@
     routeprice DOUBLE,
     arrivalcode VARCHAR(3),
     departurecode VARCHAR(3),
+    UNIQUE(departurecode, arrivalcode, year),
     CONSTRAINT pk_route PRIMARY KEY(routeID)) ENGINE=InnoDB;
      
     CREATE TABLE airport (
@@ -98,7 +99,6 @@
     CREATE TABLE payment (
     cardnum BIGINT,
     cardholder VARCHAR(30),
-    reservationnumber INT,
     CONSTRAINT pk_payment PRIMARY KEY(cardnum)) ENGINE=InnoDB;
     
     CREATE TABLE ticket (
@@ -153,7 +153,7 @@
     VALUES (add_airportcode, add_airportname, add_country);
     END ;//
     
-	/*3d addRoute: borde vi inte ocksÃ¥ lÃ¤gga till routeid till routen??*/
+	/*3d addRoute: borde vi inte ocksÃÂ¥ lÃÂ¤gga till routeid till routen??*/
     CREATE PROCEDURE addRoute(IN add_departurecode VARCHAR(3), IN add_arrivalcode VARCHAR(3), IN add_year INT, IN add_routeprice DOUBLE) 
     BEGIN
     INSERT INTO route (departurecode, arrivalcode, year, routeprice)
@@ -215,8 +215,17 @@
 	ON booking 
     FOR EACH ROW
     BEGIN
+		DECLARE ticket_exist BOOLEAN;
+        DECLARE temp_ticket INT;
+        SET ticket_exist = FALSE;
+        WHILE ticket_exist = FALSE DO
+        SET temp_ticket = FLOOR(1 + rand()*100000000);
+			IF (SELECT COUNT(*) FROM ticket WHERE ticketnumber = temp_ticket) = 0 THEN
+				SET ticket_exist = TRUE;
+			END IF; 
+		END WHILE;
 		UPDATE ticket
-		SET ticketnumber = FLOOR(1 + rand()*100000000)
+		SET ticketnumber = temp_ticket
 		WHERE ticket.reservationnumber = NEW.reservationnumber AND ticketnumber IS NULL;
     END;//
     
@@ -329,7 +338,7 @@
 	execute them on the server) instead of writing the same functions in the frontend of the system (in for example java-script on a web-page)?
 	The first advantage is that using stored procedures reduces duplication of effort. Since stored procedures are only compiled once the procedure calls will be quicker, especially if the database is needed by many applications simultaneously. By only compiling once, network traffic can be minimized.
 	The second advantage is that stored procedures reduce the cost of communication as well as reducing the amount of data needing to be transferred. This means that the data can be executed much faster.
-	The third advantage is that using stored procedures gives the possibility of using complex constraints, meaning that it is possible to determine limitations of what data is stored in a table. If a constraint is violated by a user call the call or âactionâ will be discarded
+	The third advantage is that using stored procedures gives the possibility of using complex constraints, meaning that it is possible to determine limitations of what data is stored in a table. If a constraint is violated by a user call the call or Ã¢ÂÂactionÃ¢ÂÂ will be discarded
 	*/
 
     /* 9
@@ -372,5 +381,13 @@
     perform addpayment at the same time, and calculatefreeseats should give the correct result. So no overbooking should occur. 
     */
 
-
+	/*
+    Identify one case where a secondary index would be useful. Design the index,
+	describe and motivate your design. 
+    
+    In the table passenger the primary index are passportnumber. Now we want to search for the passengers full name instead of
+	passportnumber. Therefore we can create a secondary index on full name to be make the searching more efficent. 
+    An example of how to do that is:
+    CREATE INDEX secondary_index ON passenger(fullname);
+    /*
 		
