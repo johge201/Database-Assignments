@@ -26,6 +26,7 @@
 
 	DROP FUNCTION IF EXISTS calculateFreeSeats;
     DROP FUNCTION IF EXISTS calculatePrice;
+    DROP FUNCTION IF EXISTS make_unique_ticket;
     
 	DROP TRIGGER IF EXISTS ticketNum;
     
@@ -153,7 +154,7 @@
     VALUES (add_airportcode, add_airportname, add_country);
     END ;//
     
-	/*3d addRoute: borde vi inte ocksÃÂ¥ lÃÂ¤gga till routeid till routen??*/
+	/*3d addRoute: borde vi inte ocksÃÂÃÂ¥ lÃÂÃÂ¤gga till routeid till routen??*/
     CREATE PROCEDURE addRoute(IN add_departurecode VARCHAR(3), IN add_arrivalcode VARCHAR(3), IN add_year INT, IN add_routeprice DOUBLE) 
     BEGIN
     INSERT INTO route (departurecode, arrivalcode, year, routeprice)
@@ -207,13 +208,9 @@
     AND ws.routeID=r.routeID;
     RETURN ROUND(routeP*weekdayFact*((bookedSeats +1)/40)*profitFact, 3);
     END;//
-
-	/*TRIGGER*/
-    /*5 ticketNum*/ 
-	CREATE TRIGGER ticketNum
-    AFTER INSERT 
-	ON booking 
-    FOR EACH ROW
+    
+    CREATE FUNCTION make_unique_ticket()
+    RETURNS INT
     BEGIN
 		DECLARE ticket_exist BOOLEAN;
         DECLARE temp_ticket INT;
@@ -224,8 +221,18 @@
 				SET ticket_exist = TRUE;
 			END IF; 
 		END WHILE;
+	RETURN temp_ticket;
+    END;//
+
+	/*TRIGGER*/
+    /*5 ticketNum*/ 
+	CREATE TRIGGER ticketNum
+    AFTER INSERT 
+	ON booking 
+    FOR EACH ROW
+    BEGIN
 		UPDATE ticket
-		SET ticketnumber = temp_ticket
+		SET ticketnumber = make_unique_ticket()
 		WHERE ticket.reservationnumber = NEW.reservationnumber AND ticketnumber IS NULL;
     END;//
     
@@ -338,7 +345,7 @@
 	execute them on the server) instead of writing the same functions in the frontend of the system (in for example java-script on a web-page)?
 	The first advantage is that using stored procedures reduces duplication of effort. Since stored procedures are only compiled once the procedure calls will be quicker, especially if the database is needed by many applications simultaneously. By only compiling once, network traffic can be minimized.
 	The second advantage is that stored procedures reduce the cost of communication as well as reducing the amount of data needing to be transferred. This means that the data can be executed much faster.
-	The third advantage is that using stored procedures gives the possibility of using complex constraints, meaning that it is possible to determine limitations of what data is stored in a table. If a constraint is violated by a user call the call or Ã¢ÂÂactionÃ¢ÂÂ will be discarded
+	The third advantage is that using stored procedures gives the possibility of using complex constraints, meaning that it is possible to determine limitations of what data is stored in a table. If a constraint is violated by a user call the call or ÃÂ¢ÃÂÃÂactionÃÂ¢ÃÂÃÂ will be discarded
 	*/
 
     /* 9
